@@ -1,0 +1,4 @@
+{
+  "name": "triangle-wars",
+  "main": "party/server.ts"
+}
