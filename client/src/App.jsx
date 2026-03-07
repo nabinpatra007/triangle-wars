@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 // ══════════════════════════════════════════════════════════════════
 // CONFIG — replace after `npx partykit deploy`
 // ══════════════════════════════════════════════════════════════════
-const PARTYKIT_HOST = "triangle-wars-server.nabinpatra007.partykit.dev";
+const PARTYKIT_HOST = "triangle-wars.nabinpatra007.partykit.dev";
 
 // ══════════════════════════════════════════════════════════════════
 // PALETTE & GRID PRESETS
@@ -80,15 +80,26 @@ function aiPick(drawn, claimed, grid) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// HOOK: responsive cell size
+// HOOK: responsive cell size (MOBILE OPTIMIZED)
 // ══════════════════════════════════════════════════════════════════
 function useCellSize(cols, rows) {
-  const calc = () => Math.max(38, Math.floor(Math.min(
-    (Math.min(window.innerWidth - 16, 500)) / (cols - 1),
-    (window.innerHeight * 0.6) / (rows - 1), 72
-  )));
+  const calc = () => {
+    // Subtract canvas padding (PAD*2 = 56px) + page horizontal margins (16px)
+    const availableWidth = window.innerWidth - PAD * 2 - 16;
+    // Leave room for header (~44px), progress (~18px), status (~28px),
+    // scoreboard (~68px), hint (~60px), gaps (~30px) ≈ 248px total UI chrome
+    const availableHeight = window.innerHeight - 248;
+    return Math.max(24, Math.floor(Math.min(
+      availableWidth / (cols - 1),
+      availableHeight / (rows - 1)
+    )));
+  };
   const [cs, setCs] = useState(calc);
-  useEffect(() => { const h = () => setCs(calc()); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
+  useEffect(() => { 
+    const h = () => setCs(calc()); 
+    window.addEventListener("resize", h); 
+    return () => window.removeEventListener("resize", h); 
+  }, [cols, rows]);
   return cs;
 }
 
@@ -652,7 +663,7 @@ function GameBoard({ players, cols, rows, mode, socket, myId, initSS, onQuit }) 
   return (
     <div style={{ ...page, padding: "8px 8px", justifyContent: "flex-start", paddingTop: 10 }}>
       {/* Header row */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: Math.min(window.innerWidth - 16, cW + 164), marginBottom: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: cW, marginBottom: 6 }}>
         <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", background: "linear-gradient(135deg,#CBD5E8,#7BA7D8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Triangle Wars</h1>
         <button onClick={onQuit} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(100,140,200,0.15)", color: "rgba(150,180,255,0.5)", padding: "5px 12px", borderRadius: 6, fontSize: 9, letterSpacing: "0.18em", cursor: "pointer", textTransform: "uppercase", transition: "all 0.2s" }}
           onMouseOver={e => { e.target.style.color = "#FF4D6D"; e.target.style.borderColor = "rgba(255,77,109,0.4)"; }}
@@ -662,7 +673,7 @@ function GameBoard({ players, cols, rows, mode, socket, myId, initSS, onQuit }) 
       </div>
 
       {/* Progress bar */}
-      <div style={{ width: "100%", maxWidth: Math.min(window.innerWidth - 16, cW + 164), height: 3, background: "rgba(100,140,200,0.1)", borderRadius: 2, marginBottom: 7, overflow: "hidden" }}>
+      <div style={{ width: "100%", maxWidth: cW, height: 3, background: "rgba(100,140,200,0.1)", borderRadius: 2, marginBottom: 7, overflow: "hidden" }}>
         <div style={{ height: "100%", borderRadius: 2, transition: "width 0.4s", background: "linear-gradient(90deg,rgba(100,160,255,0.5),rgba(150,200,255,0.3))", width: `${progress * 100}%` }} />
       </div>
 
@@ -684,56 +695,43 @@ function GameBoard({ players, cols, rows, mode, socket, myId, initSS, onQuit }) 
         </div>
       )}
 
-      {/* Main layout */}
-      <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-        {/* Canvas */}
-        <div style={{ position: "relative" }}>
+      {/* Main layout - Stacks vertically for Mobile */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 15, width: "100%" }}>
+        
+        {/* Canvas - Now Centered and Full Width */}
+        <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>
           <canvas ref={canvasRef} width={cW} height={cH}
             style={{ display: "block", borderRadius: 10, border: "1px solid rgba(100,140,200,0.12)", cursor: canAct ? "crosshair" : "default", boxShadow: "0 0 30px rgba(0,50,160,0.18)", maxWidth: "100%", touchAction: "none" }} />
 
           {gameOver && (
             <div style={{ position: "absolute", inset: 0, background: "rgba(4,7,15,0.92)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: 10, backdropFilter: "blur(5px)" }}>
-              <div style={{ fontSize: 8, letterSpacing: "0.45em", color: "rgba(150,180,255,0.5)", textTransform: "uppercase", marginBottom: 10 }}>Game Over</div>
-              {isTie
-                ? <div style={{ fontSize: 26, fontWeight: 700, color: "#CBD5E8", letterSpacing: "0.08em", marginBottom: 6 }}>It's a Tie!</div>
-                : <div style={{ fontSize: 26, fontWeight: 700, color: players[winIdx].color, textShadow: `0 0 24px ${players[winIdx].color}`, letterSpacing: "0.08em", marginBottom: 6 }}>{players[winIdx].name} Wins!</div>
-              }
-              <div style={{ display: "flex", gap: 14, marginBottom: 22, flexWrap: "wrap", justifyContent: "center" }}>
-                {scores.map((s, i) => <span key={i} style={{ fontSize: 10, color: (!isTie && i === winIdx) ? players[i].color : "rgba(150,180,255,0.42)", letterSpacing: "0.05em" }}>{players[i].name}: {s}</span>)}
-              </div>
-              <button onClick={onQuit} style={{ background: "transparent", border: `1px solid ${isTie ? "rgba(150,180,255,0.5)" : players[winIdx].color + "70"}`, color: isTie ? "#CBD5E8" : players[winIdx].color, padding: "9px 26px", borderRadius: 6, fontSize: 10, letterSpacing: "0.22em", cursor: "pointer", textTransform: "uppercase" }}>New Game</button>
+               <div style={{ fontSize: 26, fontWeight: 700, color: isTie ? "#CBD5E8" : players[winIdx].color }}>{isTie ? "Tie!" : "Winner!"}</div>
+               <button onClick={onQuit} style={btn()}>Menu</button>
             </div>
           )}
         </div>
 
-        {/* Scoreboard */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 7, minWidth: 130 }}>
+        {/* Scoreboard - Horizontal underneath the game */}
+        <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8, width: "100%" }}>
           {players.map((p, i) => {
             const active = i === pIdx && !gameOver;
             return (
-              <div key={i} style={{ padding: "8px 12px", borderRadius: 9, position: "relative", overflow: "hidden", transition: "all 0.28s", background: active ? `linear-gradient(135deg,${p.color}18,${p.color}08)` : "rgba(255,255,255,0.025)", border: `1px solid ${active ? p.color + "55" : "rgba(100,140,200,0.08)"}`, boxShadow: active ? `0 0 14px ${p.color}14` : "none" }}>
-                {active && <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: p.color, boxShadow: `0 0 6px ${p.color}` }} />}
-                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: p.color, boxShadow: active ? `0 0 6px ${p.color}` : "none" }} />
-                  <div style={{ fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: active ? p.color : "rgba(150,180,255,0.38)" }}>{active ? "▶ " : ""}{p.name}</div>
-                </div>
-                <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1, color: active ? p.color : "rgba(200,220,255,0.42)", textShadow: active ? `0 0 14px ${p.color}` : "none" }}>{scores[i]}</div>
-                <div style={{ fontSize: 7, color: "rgba(150,180,255,0.25)", marginTop: 2, letterSpacing: "0.1em" }}>
-                  {mode === "online" && sState?.players[i]?.connected === false ? "⚡ disconnected" : p.type === "human" ? "👤 human" : "🤖 cpu"}
-                </div>
+              <div key={i} style={{ flex: "1 1 30%", minWidth: "90px", padding: "8px", borderRadius: 9, background: active ? `${p.color}22` : "rgba(255,255,255,0.03)", border: `1px solid ${active ? p.color : "rgba(100,140,200,0.1)"}`, textAlign: "center" }}>
+                <div style={{ fontSize: 9, color: active ? p.color : "rgba(150,180,255,0.3)" }}>{p.name}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: active ? p.color : "#FFF" }}>{scores[i]}</div>
               </div>
             );
           })}
+        </div>
 
-          {/* Mini hint */}
-          <div style={{ marginTop: 4, padding: "8px 10px", borderRadius: 7, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(100,140,200,0.06)" }}>
-            {[["Tap dot", "select"], ["Tap dot", "connect"], ["Drag", "quick draw"], ["Form △", "score + again"]].map(([a, r], i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 6, marginBottom: 3 }}>
-                <span style={{ fontSize: 8, color: "rgba(150,180,255,0.32)" }}>{a}</span>
-                <span style={{ fontSize: 8, color: "rgba(150,180,255,0.2)" }}>{r}</span>
-              </div>
-            ))}
-          </div>
+        {/* Mini hint - inside main layout so it's properly bounded */}
+        <div style={{ width: "100%", padding: "8px 10px", borderRadius: 7, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(100,140,200,0.06)" }}>
+          {[["Tap dot", "select"], ["Tap dot", "connect"], ["Drag", "quick draw"], ["Form △", "score + again"]].map(([a, r], i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 6, marginBottom: 3 }}>
+              <span style={{ fontSize: 8, color: "rgba(150,180,255,0.32)" }}>{a}</span>
+              <span style={{ fontSize: 8, color: "rgba(150,180,255,0.2)" }}>{r}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -754,6 +752,18 @@ export default function App() {
   const [socket,  setSocket]  = useState(null);
   const [myId,    setMyId]    = useState(null);
   const [initSS,  setInitSS]  = useState(null);
+
+  // Bug 5 fix: inject viewport meta so mobile browsers render at device width
+  // (without this, they default to 980px and scale down → "half screen" effect)
+  useEffect(() => {
+    let meta = document.querySelector('meta[name="viewport"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.name = "viewport";
+      document.head.appendChild(meta);
+    }
+    meta.content = "width=device-width, initial-scale=1, maximum-scale=1";
+  }, []);
   const gp = GRID_PRESETS.find(g => g.key === gridKey);
 
   const startLocal = (gk, plrs) => { setGridKey(gk); setPlayers(plrs); setGameMode("local"); setPhase("reveal"); };
