@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 // ══════════════════════════════════════════════════════════════════
 // CONFIG — replace after `npx partykit deploy`
 // ══════════════════════════════════════════════════════════════════
-const PARTYKIT_HOST = "triangle-wars.nabinpatra007.partykit.dev";
+const PARTYKIT_HOST = "triangle-wars-server.nabinpatra007.partykit.dev";
 
 // ══════════════════════════════════════════════════════════════════
 // PALETTE & GRID PRESETS
