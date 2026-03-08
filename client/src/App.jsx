@@ -5,9 +5,15 @@ import { useState, useEffect, useRef, useMemo } from "react";
 // ══════════════════════════════════════════════════════════════════
 const PARTYKIT_HOST = "triangle-wars.nabinpatra007.partykit.dev";
 
-// ══════════════════════════════════════════════════════════════════
-// PALETTE & GRID PRESETS
-// ══════════════════════════════════════════════════════════════════
+// ── Viewport fix (must run before first render, not inside useEffect) ──────────
+// Without this, mobile browsers render at 980px and scale down → half-screen bug
+;(function () {
+  let m = document.querySelector('meta[name="viewport"]');
+  if (!m) { m = document.createElement("meta"); m.name = "viewport"; document.head.appendChild(m); }
+  m.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1");
+})();
+
+// ── Palette & Grid Presets ─────────────────────────────────────────
 const PALETTE = [
   { name: "Ruby",  color: "#FF4D6D", fill: "#FF4D6D38" },
   { name: "Cyan",  color: "#00D4FF", fill: "#00D4FF38" },
@@ -233,7 +239,9 @@ function OnlineLobby({ gridKey, maxPlayers, onBack, onReady }) {
         setSState(d.s);
         if (d.s.phase === "playing") {
           const players = d.s.players.map(p => ({ ...PALETTE[p.palIdx % 3], type: "human", id: p.id, name: p.name }));
-          onReady(players, socket, myIdRef.current, code, d.s);
+          const liveSocket = wsRef.current;
+          wsRef.current = null; // prevent unmount cleanup from closing the socket GameBoard needs
+          onReady(players, liveSocket, myIdRef.current, code, d.s);
         }
       }
       if (d.type === "error") { setErr(d.msg); setTimeout(() => setErr(""), 3000); }
@@ -390,6 +398,7 @@ function GameBoard({ players, cols, rows, mode, socket, myId, initSS, onQuit }) 
         if (prev && d.s.claimed) {
           const newTris = d.s.claimed.map((o, ti) => ({ o, ti })).filter(({ o, ti }) => o !== -1 && (prev.claimed?.[ti] === -1 || prev.claimed?.[ti] === undefined));
           if (newTris.length) {
+            if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
             setFlash(newTris.map(x => x.ti));
             const owner = newTris[0].o;
             setBanner(`✦ ${d.s.players[owner]?.name} +${newTris.length}!`);
@@ -407,6 +416,8 @@ function GameBoard({ players, cols, rows, mode, socket, myId, initSS, onQuit }) 
   const execLocal = (ek, d, cl, sc, pi) => {
     const r = applyMove(ek, d, cl, sc, pi, grid);
     if (!r) return;
+    // Haptic: short buzz on line drawn, stronger on triangle scored
+    if (navigator.vibrate) navigator.vibrate(r.scored ? [30, 10, 30] : 18);
     setLDrawn(r.nextDrawn); setLClaimed(r.nextClaimed); setLScores(r.nextScores);
     if (r.done) { setLOver(true); return; }
     if (r.scored) {
@@ -451,6 +462,7 @@ function GameBoard({ players, cols, rows, mode, socket, myId, initSS, onQuit }) 
       if (!grid.allEdges.has(ek)) { setBanner("⚠ Not adjacent"); setTimeout(() => setBanner(""), 900); return false; }
       if (d.has(ek)) { setBanner("⚠ Already drawn"); setTimeout(() => setBanner(""), 900); return false; }
       if (mode === "online") {
+        if (navigator.vibrate) navigator.vibrate(18);
         socket?.send(JSON.stringify({ t: "move", edge: ek }));
       } else {
         execLocal(ek, d, cl, sc, pi);
@@ -753,17 +765,7 @@ export default function App() {
   const [myId,    setMyId]    = useState(null);
   const [initSS,  setInitSS]  = useState(null);
 
-  // Bug 5 fix: inject viewport meta so mobile browsers render at device width
-  // (without this, they default to 980px and scale down → "half screen" effect)
-  useEffect(() => {
-    let meta = document.querySelector('meta[name="viewport"]');
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.name = "viewport";
-      document.head.appendChild(meta);
-    }
-    meta.content = "width=device-width, initial-scale=1, maximum-scale=1";
-  }, []);
+  // Bug 5 fix: viewport meta now injected at module load (top of file) — fires before first render
   const gp = GRID_PRESETS.find(g => g.key === gridKey);
 
   const startLocal = (gk, plrs) => { setGridKey(gk); setPlayers(plrs); setGameMode("local"); setPhase("reveal"); };
