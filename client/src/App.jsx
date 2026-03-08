@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { Analytics } from "@vercel/analytics/react";
 
 const PARTYKIT_HOST = "triangle-wars.nabinpatra007.partykit.dev";
 
@@ -740,8 +741,13 @@ export default function App() {
     if(socket){socket.send(JSON.stringify({t:"quit"}));socket.close();setSocket(null);}
     setInitSS(null);setPlayers([]);setPhase("setup");
   };
-  if(phase==="setup")        return <SetupScreen onStartLocal={startLocal} onStartOnline={startOnline}/>;
-  if(phase==="online_lobby") return <OnlineLobby gridKey={gridKey} maxPlayers={maxP} onBack={()=>setPhase("setup")} onReady={onReady}/>;
-  if(phase==="reveal")       return <ColorReveal players={players} onDone={()=>setPhase("game")}/>;
-  return <GameBoard players={players} cols={gp.cols} rows={gp.rows} mode={gameMode} socket={socket} myId={myId} initSS={initSS} onQuit={quit}/>;
+  return (
+    <>
+      {phase==="setup" && <SetupScreen onStartLocal={startLocal} onStartOnline={startOnline}/>}
+      {phase==="online_lobby" && <OnlineLobby gridKey={gridKey} maxPlayers={maxP} onBack={()=>setPhase("setup")} onReady={onReady}/>}
+      {phase==="reveal" && <ColorReveal players={players} onDone={()=>setPhase("game")}/>}
+      {phase==="game" && <GameBoard players={players} cols={gp.cols} rows={gp.rows} mode={gameMode} socket={socket} myId={myId} initSS={initSS} onQuit={quit}/>}
+      <Analytics />
+    </>
+  );
 }
