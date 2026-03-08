@@ -11,6 +11,10 @@ const PARTYKIT_HOST = "triangle-wars.nabinpatra007.partykit.dev";
   let m = document.querySelector('meta[name="viewport"]');
   if (!m) { m = document.createElement("meta"); m.name = "viewport"; document.head.appendChild(m); }
   m.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1");
+  // Ensure body and #root fill full viewport width
+  const s = document.createElement("style");
+  s.textContent = "*, *::before, *::after { box-sizing: border-box; } body, #root { margin: 0; padding: 0; width: 100%; min-height: 100vh; }";
+  document.head.appendChild(s);
 })();
 
 // ── Palette & Grid Presets ─────────────────────────────────────────
@@ -112,7 +116,7 @@ function useCellSize(cols, rows) {
 // ══════════════════════════════════════════════════════════════════
 // SHARED STYLES
 // ══════════════════════════════════════════════════════════════════
-const page = { minHeight: "100vh", background: "#04070F", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'Courier New',monospace", padding: "20px 12px", boxSizing: "border-box", overflowY: "auto" };
+const page = { width: "100%", minHeight: "100vh", background: "#04070F", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'Courier New',monospace", padding: "20px 12px", boxSizing: "border-box", overflowY: "auto" };
 const card = { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(100,140,200,0.1)", borderRadius: 12, padding: "16px 20px", width: "100%", maxWidth: 320 };
 const lbl = (mb = 12) => ({ fontSize: 8, letterSpacing: "0.3em", color: "rgba(150,180,255,0.36)", textTransform: "uppercase", marginBottom: mb, display: "block", textAlign: "center" });
 const btn = (active = true) => ({ background: active ? "linear-gradient(135deg,#1c3f72,#0f2040)" : "rgba(255,255,255,0.03)", border: `1px solid ${active ? "rgba(100,160,255,0.42)" : "rgba(100,140,200,0.1)"}`, color: active ? "#CBD5E8" : "rgba(150,180,255,0.4)", padding: "12px 36px", borderRadius: 8, fontSize: 11, letterSpacing: "0.28em", cursor: "pointer", textTransform: "uppercase", boxShadow: active ? "0 0 22px rgba(0,80,200,0.2)" : "none", transition: "all 0.2s" });
@@ -241,6 +245,7 @@ function OnlineLobby({ gridKey, maxPlayers, onBack, onReady }) {
           const players = d.s.players.map(p => ({ ...PALETTE[p.palIdx % 3], type: "human", id: p.id, name: p.name }));
           const liveSocket = wsRef.current;
           wsRef.current = null; // prevent unmount cleanup from closing the socket GameBoard needs
+          liveSocket.onmessage = null; // detach lobby handler so it stops intercepting game messages
           onReady(players, liveSocket, myIdRef.current, code, d.s);
         }
       }
