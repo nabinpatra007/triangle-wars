@@ -88,8 +88,120 @@ function getValidEdges(drawn, cellDiags, cols, rows) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// GRID BUILDER — only static H+V edges; diagonals are player-drawn
+// AUDIO ENGINE — ambient synth loop + sound effects
+// Uses Web Audio API (no library, works on all browsers)
+// iOS requires a user gesture to unlock audio context
 // ══════════════════════════════════════════════════════════════════
+let _audioCtx = null;
+function getAudioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === "suspended") _audioCtx.resume();
+  return _audioCtx;
+}
+
+// Master gain — muted until user interacts
+let _masterGain = null;
+function getMaster() {
+  if (_masterGain) return _masterGain;
+  const ctx = getAudioCtx();
+  _masterGain = ctx.createGain(); _masterGain.gain.value = 0.18;
+  _masterGain.connect(ctx.destination);
+  return _masterGain;
+}
+
+// ── Ambient drone loop ──────────────────────────────────────────
+let _ambientStarted = false;
+function startAmbient() {
+  if (_ambientStarted) return;
+  _ambientStarted = true;
+  const ctx = getAudioCtx(); const master = getMaster();
+  // Two slow detuned oscillators creating a pad
+  [[55, 0], [55, 8], [82.4, 0], [110, -6]].forEach(([freq, detune]) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    osc.type = "sine"; osc.frequency.value = freq; osc.detune.value = detune;
+    filter.type = "lowpass"; filter.frequency.value = 600;
+    gain.gain.value = 0.12;
+    // Slow tremolo
+    const lfo = ctx.createOscillator(); const lfoGain = ctx.createGain();
+    lfo.frequency.value = 0.18 + Math.random() * 0.08; lfoGain.gain.value = 0.04;
+    lfo.connect(lfoGain); lfoGain.connect(gain.gain);
+    lfo.start();
+    osc.connect(filter); filter.connect(gain); gain.connect(master);
+    osc.start();
+  });
+  // Sub bass pulse
+  const sub = ctx.createOscillator(); const subGain = ctx.createGain();
+  sub.type = "triangle"; sub.frequency.value = 27.5; subGain.gain.value = 0.08;
+  sub.connect(subGain); subGain.connect(master); sub.start();
+}
+
+// ── Sound effects ───────────────────────────────────────────────
+function playLineDraw(playerColor) {
+  try {
+    const ctx = getAudioCtx(); const master = getMaster();
+    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+    osc.type = "sine"; osc.frequency.setValueAtTime(440, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(320, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+    osc.connect(gain); gain.connect(master);
+    osc.start(); osc.stop(ctx.currentTime + 0.12);
+  } catch(_) {}
+}
+
+function playTriangleScore(count = 1) {
+  try {
+    const ctx = getAudioCtx(); const master = getMaster();
+    // Ascending chord — sweeter with more triangles
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.slice(0, Math.min(count + 1, 4)).forEach((freq, i) => {
+      setTimeout(() => {
+        const osc = ctx.createOscillator(); const gain = ctx.createGain();
+        osc.type = "triangle"; osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        osc.connect(gain); gain.connect(master);
+        osc.start(); osc.stop(ctx.currentTime + 0.5);
+      }, i * 60);
+    });
+  } catch(_) {}
+}
+
+function playGameOver(won) {
+  try {
+    const ctx = getAudioCtx(); const master = getMaster();
+    const freqs = won ? [523.25, 659.25, 783.99, 1046.5, 1318.5] : [311.13, 277.18, 246.94, 220, 196];
+    freqs.forEach((freq, i) => {
+      setTimeout(() => {
+        const osc = ctx.createOscillator(); const gain = ctx.createGain();
+        osc.type = won ? "triangle" : "sawtooth";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        osc.connect(gain); gain.connect(master);
+        osc.start(); osc.stop(ctx.currentTime + 0.6);
+      }, i * 100);
+    });
+  } catch(_) {}
+}
+
+function playDiagonalLock() {
+  try {
+    const ctx = getAudioCtx(); const master = getMaster();
+    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+    osc.type = "sawtooth"; osc.frequency.setValueAtTime(180, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    osc.connect(gain); gain.connect(master);
+    osc.start(); osc.stop(ctx.currentTime + 0.15);
+  } catch(_) {}
+}
+
+
 function buildGrid(cols, rows) {
   const allEdges=new Set();
   for (let r=0;r<rows;r++) for (let c=0;c<cols;c++) {
@@ -421,6 +533,15 @@ function GameBoard({ players, cols, rows, mode, socket, myId, initSS, onQuit }) 
   const scores    =mode==="online"?(sState?.players?.map(p=>p.score)||new Array(players.length).fill(0)):lScores;
   const pIdx      =mode==="online"?(sState?.cur??0):lPIdx;
   const gameOver  =mode==="online"?sState?.phase==="over":lOver;
+  // Play game over sound when game ends
+  const prevGameOver = useRef(false);
+  useEffect(()=>{
+    if(gameOver && !prevGameOver.current){
+      const myScore = mode==="online" ? scores[players.findIndex(p=>p.id===myId)] : scores[0];
+      playGameOver(myScore === Math.max(...scores));
+    }
+    prevGameOver.current = gameOver;
+  },[gameOver]);
   const isAI      =mode==="local"&&!gameOver&&players[lPIdx]?.type==="cpu";
   const isMyTurn  =mode==="local"||(players[pIdx]?.id===myId);
   const canAct    =!gameOver&&!aiLock&&isMyTurn&&!isAI;
@@ -436,6 +557,7 @@ function GameBoard({ players, cols, rows, mode, socket, myId, initSS, onQuit }) 
           const newKeys=Object.keys(d.s.claimed).filter(k=>prevC[k]===undefined);
           if(newKeys.length){
             if(navigator.vibrate) navigator.vibrate([30,10,30]);
+            playTriangleScore(newKeys.length);
             setFlash(newKeys);
             const owner=d.s.claimed[newKeys[0]];
             setBanner(`✦ ${d.s.players[owner]?.name} +${newKeys.length}!`);
@@ -453,8 +575,10 @@ function GameBoard({ players, cols, rows, mode, socket, myId, initSS, onQuit }) 
     const r=applyMove(ek,d,cl,cd,sc,pi,cols,rows);
     if(!r) return;
     if(navigator.vibrate) navigator.vibrate(r.scored?[30,10,30]:18);
+    if(r.scored) playTriangleScore(r.hitKeys.length); else playLineDraw();
+    if(getDiagInfo(ek,cols)) playDiagonalLock();
     setLDrawn(r.nextDrawn); setLClaimed(r.nextClaimed); setLCellDiags(r.nextCellDiags); setLScores(r.nextScores);
-    if(r.done){setLOver(true);return;}
+    if(r.done){ playGameOver(r.nextScores[pi]===Math.max(...r.nextScores)); setLOver(true); return; }
     if(r.scored){
       setFlash(r.hitKeys); setBanner(`✦ +${r.hitKeys.length} — go again!`);
       setTimeout(()=>{setFlash([]);setBanner("");},850);
@@ -492,11 +616,12 @@ function GameBoard({ players, cols, rows, mode, socket, myId, initSS, onQuit }) 
       const dInfo=getDiagInfo(ek,cols);
       if(dInfo){const ck=`${dInfo.cellR}_${dInfo.cellC}`;if(cd[ck]&&cd[ck]!==dInfo.dir){setBanner("⚠ Diagonal locked");setTimeout(()=>setBanner(""),900);return false;}}
       if(d.has(ek)){setBanner("⚠ Already drawn");setTimeout(()=>setBanner(""),900);return false;}
-      if(mode==="online"){if(navigator.vibrate)navigator.vibrate(18);socket?.send(JSON.stringify({t:"move",edge:ek}));}
+      if(mode==="online"){if(navigator.vibrate)navigator.vibrate(18);playLineDraw();if(getDiagInfo(ek,cols))playDiagonalLock();socket?.send(JSON.stringify({t:"move",edge:ek}));}
       else execLocal(ek,d,cl,cd,sc,pi);
       return true;
     };
     const onDown=ev=>{
+      startAmbient(); // unlock audio on first touch (required by iOS/Chrome autoplay policy)
       if(!interactRef.current.canAct) return;
       ev.preventDefault();
       const {x,y}=getPos(ev); const dot=findDot(x,y);
@@ -659,7 +784,16 @@ function GameBoard({ players, cols, rows, mode, socket, myId, initSS, onQuit }) 
       ctx.shadowColor=isSel?players[pIdx].color:"rgba(150,180,255,0.28)";
       ctx.shadowBlur=isSel?18:4;ctx.fill();ctx.shadowBlur=0;
     }
-  },[drawn,claimed,cellDiags,selDot,dragPos,pIdx,players,flash,cs,cW,cH,grid,cols,rows,canAct]);
+  },[drawn,claimed,cellDiags,selDot,dragPos,pIdx,players,flash,cs,cW,cH,grid,cols,rows,canAct,sState]);
+
+  const [muted, setMuted] = useState(false);
+  const toggleMute = () => {
+    setMuted(m => {
+      const next = !m;
+      try { getMaster().gain.value = next ? 0 : 0.18; } catch(_) {}
+      return next;
+    });
+  };
 
   const maxSc=Math.max(...scores);
   const winIdx=scores.indexOf(maxSc);
@@ -674,6 +808,7 @@ function GameBoard({ players, cols, rows, mode, socket, myId, initSS, onQuit }) 
         <button onClick={onQuit} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(100,140,200,0.15)",color:"rgba(150,180,255,0.5)",padding:"5px 12px",borderRadius:6,fontSize:9,letterSpacing:"0.18em",cursor:"pointer",textTransform:"uppercase",transition:"all 0.2s"}}
           onMouseOver={e=>{e.target.style.color="#FF4D6D";e.target.style.borderColor="rgba(255,77,109,0.4)";}}
           onMouseOut={e=>{e.target.style.color="rgba(150,180,255,0.5)";e.target.style.borderColor="rgba(100,140,200,0.15)";}}>⌂ Menu</button>
+        <button onClick={toggleMute} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(100,140,200,0.15)",color:"rgba(150,180,255,0.5)",padding:"5px 10px",borderRadius:6,fontSize:13,cursor:"pointer",transition:"all 0.2s"}}>{muted?"🔇":"🔊"}</button>
       </div>
       <div style={{width:"100%",maxWidth:cW,height:3,background:"rgba(100,140,200,0.1)",borderRadius:2,marginBottom:7,overflow:"hidden"}}>
         <div style={{height:"100%",borderRadius:2,transition:"width 0.4s",background:"linear-gradient(90deg,rgba(100,160,255,0.5),rgba(150,200,255,0.3))",width:`${progress*100}%`}}/>
