@@ -142,53 +142,53 @@ function SetupScreen({ onStartLocal, onStartOnline }) {
   };
 
   return (
-    <div style={page}>
+    <div style={{ ...page, justifyContent: "space-evenly", padding: "24px 16px" }}>
       {/* Title */}
-      <div style={{ textAlign: "center", marginBottom: 22 }}>
-        <div style={{ fontSize: 9, letterSpacing: "0.5em", color: "rgba(150,180,255,0.35)", marginBottom: 6, textTransform: "uppercase" }}>Grid · Lines · Triangles</div>
-        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", background: "linear-gradient(135deg,#CBD5E8,#7BA7D8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Triangle Wars</h1>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 10, letterSpacing: "0.5em", color: "rgba(150,180,255,0.35)", marginBottom: 8, textTransform: "uppercase" }}>Grid · Lines · Triangles</div>
+        <h1 style={{ margin: 0, fontSize: 36, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", background: "linear-gradient(135deg,#CBD5E8,#7BA7D8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Triangle Wars</h1>
       </div>
 
       {/* Mode */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: 380 }}>
         {[["local", "🎮 Pass & Play"], ["online", "🌐 Online"]].map(([m, lv]) => (
-          <button key={m} onClick={() => setMode(m)} style={{ ...btn(mode === m), padding: "8px 18px", fontSize: 10 }}>{lv}</button>
+          <button key={m} onClick={() => setMode(m)} style={{ ...btn(mode === m), flex: 1, padding: "14px 10px", fontSize: 11 }}>{lv}</button>
         ))}
       </div>
 
       {/* Grid size */}
-      <div style={{ ...card, marginBottom: 12 }}>
+      <div style={{ ...card, maxWidth: 380 }}>
         <span style={lbl()}>Grid Size</span>
         <div style={{ display: "flex", gap: 8 }}>
           {GRID_PRESETS.map(g => (
-            <button key={g.key} onClick={() => setGridKey(g.key)} style={{ flex: 1, padding: "10px 6px", borderRadius: 8, cursor: "pointer", textAlign: "center", transition: "all 0.2s", background: gridKey === g.key ? "linear-gradient(135deg,#1c3f72,#0f2040)" : "rgba(255,255,255,0.03)", border: `1px solid ${gridKey === g.key ? "rgba(100,160,255,0.42)" : "rgba(100,140,200,0.1)"}`, boxShadow: gridKey === g.key ? "0 0 14px rgba(0,80,200,0.18)" : "none" }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: gridKey === g.key ? "#CBD5E8" : "rgba(150,180,255,0.45)" }}>{g.label}</div>
-              <div style={{ fontSize: 7, color: gridKey === g.key ? "rgba(150,200,255,0.55)" : "rgba(150,180,255,0.25)", marginTop: 3 }}>{g.sub}</div>
+            <button key={g.key} onClick={() => setGridKey(g.key)} style={{ flex: 1, padding: "14px 6px", borderRadius: 8, cursor: "pointer", textAlign: "center", transition: "all 0.2s", background: gridKey === g.key ? "linear-gradient(135deg,#1c3f72,#0f2040)" : "rgba(255,255,255,0.03)", border: `1px solid ${gridKey === g.key ? "rgba(100,160,255,0.42)" : "rgba(100,140,200,0.1)"}`, boxShadow: gridKey === g.key ? "0 0 14px rgba(0,80,200,0.18)" : "none" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: gridKey === g.key ? "#CBD5E8" : "rgba(150,180,255,0.45)" }}>{g.label}</div>
+              <div style={{ fontSize: 8, color: gridKey === g.key ? "rgba(150,200,255,0.55)" : "rgba(150,180,255,0.25)", marginTop: 4 }}>{g.sub}</div>
             </button>
           ))}
         </div>
       </div>
 
       {/* Player config */}
-      <div style={{ ...card, marginBottom: 16 }}>
+      <div style={{ ...card, maxWidth: 380 }}>
         {mode === "local" ? (
           <>
             <span style={lbl()}>Players</span>
-            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 14 }}>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 16 }}>
               {[1, 2, 3].map(n => (
-                <button key={n} onClick={() => setNumP(n)} style={{ width: 44, height: 44, borderRadius: 8, fontSize: 18, fontWeight: 700, cursor: "pointer", background: numP === n ? "linear-gradient(135deg,#1c3f72,#0f2040)" : "rgba(255,255,255,0.03)", border: `1px solid ${numP === n ? "rgba(100,160,255,0.42)" : "rgba(100,140,200,0.1)"}`, color: numP === n ? "#CBD5E8" : "rgba(150,180,255,0.4)", transition: "all 0.2s" }}>{n}</button>
+                <button key={n} onClick={() => setNumP(n)} style={{ width: 52, height: 52, borderRadius: 10, fontSize: 20, fontWeight: 700, cursor: "pointer", background: numP === n ? "linear-gradient(135deg,#1c3f72,#0f2040)" : "rgba(255,255,255,0.03)", border: `1px solid ${numP === n ? "rgba(100,160,255,0.42)" : "rgba(100,140,200,0.1)"}`, color: numP === n ? "#CBD5E8" : "rgba(150,180,255,0.4)", transition: "all 0.2s" }}>{n}</button>
               ))}
             </div>
             {numP === 1 ? (
-              <div style={{ textAlign: "center", padding: "6px 0" }}>
-                <div style={{ fontSize: 24, marginBottom: 6 }}>🧑 vs 🤖</div>
-                <div style={{ fontSize: 10, color: "rgba(150,180,255,0.45)", letterSpacing: "0.08em" }}>You vs Smart CPU</div>
+              <div style={{ textAlign: "center", padding: "8px 0" }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>🧑 vs 🤖</div>
+                <div style={{ fontSize: 11, color: "rgba(150,180,255,0.45)", letterSpacing: "0.08em" }}>You vs Smart CPU</div>
               </div>
             ) : (
               Array.from({ length: numP }, (_, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", borderBottom: i < numP - 1 ? "1px solid rgba(100,140,200,0.07)" : "none" }}>
-                  <span style={{ fontSize: 12, color: "rgba(200,220,255,0.7)" }}>Player {i + 1}{i === 0 ? " (you)" : ""}</span>
-                  <button onClick={() => toggleT(i)} style={{ padding: "5px 12px", borderRadius: 6, fontSize: 9, letterSpacing: "0.12em", cursor: "pointer", textTransform: "uppercase", background: types[i] === "human" ? "rgba(0,180,100,0.12)" : "rgba(140,90,220,0.12)", border: `1px solid ${types[i] === "human" ? "rgba(0,210,110,0.3)" : "rgba(160,100,255,0.3)"}`, color: types[i] === "human" ? "rgba(0,220,120,0.9)" : "rgba(180,130,255,0.9)" }}>{types[i] === "human" ? "👤 Human" : "🤖 CPU"}</button>
+                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0", borderBottom: i < numP - 1 ? "1px solid rgba(100,140,200,0.07)" : "none" }}>
+                  <span style={{ fontSize: 13, color: "rgba(200,220,255,0.7)" }}>Player {i + 1}{i === 0 ? " (you)" : ""}</span>
+                  <button onClick={() => toggleT(i)} style={{ padding: "6px 14px", borderRadius: 6, fontSize: 10, letterSpacing: "0.12em", cursor: "pointer", textTransform: "uppercase", background: types[i] === "human" ? "rgba(0,180,100,0.12)" : "rgba(140,90,220,0.12)", border: `1px solid ${types[i] === "human" ? "rgba(0,210,110,0.3)" : "rgba(160,100,255,0.3)"}`, color: types[i] === "human" ? "rgba(0,220,120,0.9)" : "rgba(180,130,255,0.9)" }}>{types[i] === "human" ? "👤 Human" : "🤖 CPU"}</button>
                 </div>
               ))
             )}
@@ -196,18 +196,20 @@ function SetupScreen({ onStartLocal, onStartOnline }) {
         ) : (
           <>
             <span style={lbl()}>Online Players</span>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 10 }}>
               {[2, 3].map(n => (
-                <button key={n} onClick={() => setNumP(n)} style={{ flex: 1, padding: "10px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", background: numP === n ? "linear-gradient(135deg,#1c3f72,#0f2040)" : "rgba(255,255,255,0.03)", border: `1px solid ${numP === n ? "rgba(100,160,255,0.42)" : "rgba(100,140,200,0.1)"}`, color: numP === n ? "#CBD5E8" : "rgba(150,180,255,0.4)", transition: "all 0.2s" }}>{n} Players</button>
+                <button key={n} onClick={() => setNumP(n)} style={{ flex: 1, padding: "14px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", background: numP === n ? "linear-gradient(135deg,#1c3f72,#0f2040)" : "rgba(255,255,255,0.03)", border: `1px solid ${numP === n ? "rgba(100,160,255,0.42)" : "rgba(100,140,200,0.1)"}`, color: numP === n ? "#CBD5E8" : "rgba(150,180,255,0.4)", transition: "all 0.2s" }}>{n} Players</button>
               ))}
             </div>
-            <div style={{ fontSize: 9, color: "rgba(150,180,255,0.28)", marginTop: 12, textAlign: "center", letterSpacing: "0.08em" }}>Play from different devices via room code</div>
+            <div style={{ fontSize: 10, color: "rgba(150,180,255,0.28)", marginTop: 14, textAlign: "center", letterSpacing: "0.08em" }}>Play from different devices via room code</div>
           </>
         )}
       </div>
 
-      <div style={{ fontSize: 8, color: "rgba(150,180,255,0.24)", marginBottom: 18, letterSpacing: "0.14em", textAlign: "center" }}>Colors randomly assigned at start</div>
-      <button onClick={go} style={btn()}>{mode === "online" ? "Next →" : "Start Game"}</button>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 9, color: "rgba(150,180,255,0.24)", marginBottom: 14, letterSpacing: "0.14em" }}>Colors randomly assigned at start</div>
+        <button onClick={go} style={{ ...btn(), padding: "16px 48px", fontSize: 12 }}>{mode === "online" ? "Next →" : "Start Game"}</button>
+      </div>
     </div>
   );
 }
@@ -775,7 +777,10 @@ export default function App() {
 
   const startLocal = (gk, plrs) => { setGridKey(gk); setPlayers(plrs); setGameMode("local"); setPhase("reveal"); };
   const startOnline = (gk, mp) => { setGridKey(gk); setMaxP(mp); setGameMode("online"); setPhase("online_lobby"); };
-  const onReady = (plrs, ws, mid, _rc, ss) => { setPlayers(plrs); setSocket(ws); setMyId(mid); setInitSS(ss); setPhase("reveal"); };
+  const onReady = (plrs, ws, mid, _rc, ss) => { 
+    setPlayers(plrs); setSocket(ws); setMyId(mid); setInitSS(ss); 
+    setPhase("game"); // skip ColorReveal for online — both players enter simultaneously
+  };
 
   const quit = () => {
     if (socket) { socket.send(JSON.stringify({ t: "quit" })); socket.close(); setSocket(null); }
